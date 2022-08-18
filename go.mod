@@ -52,6 +52,8 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
+require github.com/dymensionxyz/dymint v0.1.0-alpha
+
 require (
 	code.cloudfoundry.org/go-diodes v0.0.0-20220725190411-383eb6634c40 // indirect
 	filippo.io/edwards25519 v1.0.0-beta.2 // indirect
