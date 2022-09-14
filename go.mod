@@ -13,7 +13,7 @@ require (
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/cosmos/iavl v0.17.3
 	github.com/cosmos/ledger-cosmos-go v0.11.1
-	github.com/dymensionxyz/dymint v0.3.5-0.20220913092457-66b94658b341
+	github.com/dymensionxyz/dymint v0.3.5-0.20220914160754-39c815d956b0
 	github.com/gogo/gateway v1.1.0
 	github.com/gogo/protobuf v1.3.3
 	github.com/golang/mock v1.6.0
