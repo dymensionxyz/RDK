@@ -10,12 +10,16 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GOPRIVATE: "github.com/dymensionxyz/*"
+      GH_ACCESS_TOKEN: "${{ secrets.GH_ACCESS_TOKEN }}"
     if: "!contains(github.event.head_commit.message, 'skip-sims')"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2.1.3
         with:
-          go-version: 1.17
+          go-version: 1.18
+      - run: git config --global url.https://$GH_ACCESS_TOKEN@github.com/.insteadOf https://github.com/
       - name: Display go version
         run: go version
       - run: make build
