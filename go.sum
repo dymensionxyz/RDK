@@ -637,8 +637,8 @@ github.com/dvsekhvalnov/jose2go v0.0.0-20200901110807-248326c1351b/go.mod h1:7Bv
 github.com/dvyukov/go-fuzz v0.0.0-20200318091601-be3528f3a813/go.mod h1:11Gm+ccJnvAhCNLlf5+cS9KjtbaD5I5zaZpFMsTHWTw=
 github.com/dymensionxyz/dymension v0.0.0-20220906152713-9cfb350c86bd h1:nBuQoguSoa+5MsrtvAqwS0wZItgcc6yJrBYoH71/1Fw=
 github.com/dymensionxyz/dymension v0.0.0-20220906152713-9cfb350c86bd/go.mod h1:E/R5A7myqX53XDtxG5RrawrQYKgLKRbSGM/KN5kh+pA=
-github.com/dymensionxyz/dymint v0.1.0-alpha h1:QJEVImyaJhJU6wXbk07NSwlMHaCyd3ii0IKN+pvvlIg=
-github.com/dymensionxyz/dymint v0.1.0-alpha/go.mod h1:drYIGgWmoU1FDQsm7VwOa5ehwrAUgNNiQPBFNsSz3PU=
+github.com/dymensionxyz/dymint v0.1.0-alpha h1:tXMrxpUMttLljY429ueVwSr1XP/B7B3d4l8Sqek0Dy8=
+github.com/dymensionxyz/dymint v0.1.0-alpha/go.mod h1:QMWXlSsNDwipWzmM2lmapOjanCX4Egfzl20sRQIFXi0=
 github.com/eapache/go-resiliency v1.1.0/go.mod h1:kFI+JgMyC7bLPUVY133qvEBtVayf5mFgVsvEsIPBvNs=
 github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21/go.mod h1:+020luEh2TKB4/GOp8oxxtq0Daoen/Cii55CzbTV6DU=
 github.com/eapache/queue v1.1.0/go.mod h1:6eCeP0CKFpHLu8blIFXhExK/dRa7WDZfr6jVFPTqq+I=
