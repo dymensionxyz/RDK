@@ -10,7 +10,7 @@ import (
 )
 
 // Parameter keys
-//TODO: remove the bonus proposer reward
+//TODO: remove the bonus proposer reward. unused in a rollapp
 var (
 	ParamStoreKeyCommunityTax        = []byte("communitytax")
 	ParamStoreKeyBaseProposerReward  = []byte("baseproposerreward")
