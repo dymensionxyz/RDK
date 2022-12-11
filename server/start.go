@@ -3,6 +3,7 @@ package server
 // DONTCOVER
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -16,9 +17,7 @@ import (
 	tmos "github.com/tendermint/tendermint/libs/os"
 	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/p2p"
-	pvm "github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
-	"github.com/tendermint/tendermint/rpc/client/local"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -34,6 +33,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/server/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
+
+	dymintconf "github.com/dymensionxyz/dymint/config"
+	dymintconv "github.com/dymensionxyz/dymint/conv"
+	dymintnode "github.com/dymensionxyz/dymint/node"
+	dymintrpc "github.com/dymensionxyz/dymint/rpc"
 )
 
 const (
@@ -135,9 +139,11 @@ is performed. Note, when enabled, gRPC will also be automatically enabled.
 
 			withTM, _ := cmd.Flags().GetBool(flagWithTendermint)
 			if !withTM {
-				serverCtx.Logger.Info("starting ABCI without Tendermint")
+				serverCtx.Logger.Info("starting ABCI without Dymint")
 				return startStandAlone(serverCtx, appCreator)
 			}
+
+			serverCtx.Logger.Info("starting ABCI with Dymint")
 
 			// amino is needed here for backwards compatibility of REST routes
 			err = startInProcess(serverCtx, clientCtx, appCreator)
@@ -192,6 +198,7 @@ is performed. Note, when enabled, gRPC will also be automatically enabled.
 
 	// add support for all Tendermint-specific command line options
 	tcmd.AddNodeFlags(cmd)
+	dymintconf.AddFlags(cmd)
 	return cmd
 }
 
@@ -297,10 +304,40 @@ func startInProcess(ctx *Context, clientCtx client.Context, appCreator types.App
 		return err
 	}
 
+	privValKey, err := p2p.LoadOrGenNodeKey(cfg.PrivValidatorKeyFile())
+	if err != nil {
+		return err
+	}
+
 	genDocProvider := node.DefaultGenesisDocProviderFunc(cfg)
+
+	// keys in dymint format
+	p2pKey, err := dymintconv.GetNodeKey(nodeKey)
+	if err != nil {
+		return err
+	}
+	signingKey, err := dymintconv.GetNodeKey(privValKey)
+	if err != nil {
+		return err
+	}
+	genesis, err := genDocProvider()
+	if err != nil {
+		return err
+	}
+	nodeConfig := dymintconf.NodeConfig{}
+	err = nodeConfig.GetViperConfig(ctx.Viper)
+	if err != nil {
+		return err
+	}
+	dymintconv.GetNodeConfig(&nodeConfig, cfg)
+	err = dymintconv.TranslateAddresses(&nodeConfig)
+	if err != nil {
+		return err
+	}
 
 	var (
 		tmNode   *node.Node
+		server   *dymintrpc.Server
 		gRPCOnly = ctx.Viper.GetBool(flagGRPCOnly)
 	)
 
@@ -308,21 +345,24 @@ func startInProcess(ctx *Context, clientCtx client.Context, appCreator types.App
 		ctx.Logger.Info("starting node in gRPC only mode; Tendermint is disabled")
 		config.GRPC.Enable = true
 	} else {
-		ctx.Logger.Info("starting node with ABCI Tendermint in-process")
+		ctx.Logger.Info("starting node with ABCI dymint in-process")
 
-		tmNode, err = node.NewNode(
-			cfg,
-			pvm.LoadOrGenFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile()),
-			nodeKey,
+		tmNode, err := dymintnode.NewNode(
+			context.Background(),
+			nodeConfig,
+			p2pKey,
+			signingKey,
 			proxy.NewLocalClientCreator(app),
-			genDocProvider,
-			node.DefaultDBProvider,
-			node.DefaultMetricsProvider(cfg.Instrumentation),
+			genesis,
 			ctx.Logger,
 		)
+		server = dymintrpc.NewServer(tmNode, cfg.RPC, ctx.Logger)
+		err = server.Start()
 		if err != nil {
 			return err
 		}
+
+		ctx.Logger.Debug("initialization: tmNode created")
 		if err := tmNode.Start(); err != nil {
 			return err
 		}
@@ -332,7 +372,7 @@ func startInProcess(ctx *Context, clientCtx client.Context, appCreator types.App
 	// service if API or gRPC is enabled, and avoid doing so in the general
 	// case, because it spawns a new local tendermint RPC client.
 	if (config.API.Enable || config.GRPC.Enable) && tmNode != nil {
-		clientCtx = clientCtx.WithClient(local.New(tmNode))
+		clientCtx = clientCtx.WithClient(server.Client())
 
 		app.RegisterTxService(clientCtx)
 		app.RegisterTendermintService(clientCtx)
