@@ -20,7 +20,7 @@ require (
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/cosmos/iavl v0.19.4
 	github.com/cosmos/ledger-cosmos-go v0.11.1
-	github.com/dymensionxyz/dymint v0.2.2-alpha.0.20221211174236-3fdf35a94683
+	github.com/dymensionxyz/dymint v0.2.2-alpha.0.20221212115626-df74c7247ee6
 	github.com/gogo/gateway v1.1.0
 	github.com/gogo/protobuf v1.3.3
 	github.com/golang/mock v1.6.0
@@ -101,7 +101,7 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac // indirect
 	github.com/dvsekhvalnov/jose2go v1.5.0 // indirect
-	github.com/dymensionxyz/cosmosclient v0.2.0-alpha.0.20221211134032-029c528178c6 // indirect
+	github.com/dymensionxyz/cosmosclient v0.2.0-alpha.0.20221213123855-1f48313d04f7 // indirect
 	github.com/dymensionxyz/dymension v0.0.0-20220906152713-9cfb350c86bd // indirect
 	github.com/elastic/gosigar v0.14.2 // indirect
 	github.com/felixge/httpsnoop v1.0.1 // indirect
