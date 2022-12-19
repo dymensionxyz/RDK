@@ -30,6 +30,7 @@ func (k Keeper) GetBaseProposerReward(ctx sdk.Context) (percent sdk.Dec) {
 
 // GetBonusProposerReward returns the current distribution bonus proposer reward
 // rate.
+//TODO: remove. unused in a rollapp
 func (k Keeper) GetBonusProposerReward(ctx sdk.Context) (percent sdk.Dec) {
 	k.paramSpace.Get(ctx, types.ParamStoreKeyBonusProposerReward, &percent)
 	return percent

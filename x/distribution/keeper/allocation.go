@@ -1,10 +1,6 @@
 package keeper
 
 import (
-	"fmt"
-
-	abci "github.com/tendermint/tendermint/abci/types"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -14,9 +10,7 @@ import (
 // bondedVotes is a list of (validator address, validator voted on last block flag) for all
 // validators in the bonded set.
 func (k Keeper) AllocateTokens(
-	ctx sdk.Context, sumPreviousPrecommitPower, totalPreviousPower int64,
-	previousProposer sdk.ConsAddress, bondedVotes []abci.VoteInfo,
-) {
+	ctx sdk.Context, previousProposer sdk.ConsAddress) {
 
 	logger := k.Logger(ctx)
 
@@ -26,6 +20,7 @@ func (k Keeper) AllocateTokens(
 	feeCollector := k.authKeeper.GetModuleAccount(ctx, k.feeCollectorName)
 	feesCollectedInt := k.bankKeeper.GetAllBalances(ctx, feeCollector.GetAddress())
 	feesCollected := sdk.NewDecCoinsFromCoins(feesCollectedInt...)
+	feePool := k.GetFeePool(ctx)
 
 	// transfer collected fees to the distribution module account
 	err := k.bankKeeper.SendCoinsFromModuleToModule(ctx, k.feeCollectorName, types.ModuleName, feesCollectedInt)
@@ -33,72 +28,42 @@ func (k Keeper) AllocateTokens(
 		panic(err)
 	}
 
-	// temporary workaround to keep CanWithdrawInvariant happy
-	// general discussions here: https://github.com/cosmos/cosmos-sdk/issues/2906#issuecomment-441867634
-	feePool := k.GetFeePool(ctx)
-	if totalPreviousPower == 0 {
+	//Calcualte base distriubtion
+	proposerReward := feesCollected.MulDecTruncate(k.GetBaseProposerReward(ctx))
+	communityTax := feesCollected.MulDecTruncate(k.GetCommunityTax(ctx))
+	remaining := feesCollected.Sub(proposerReward).Sub(communityTax)
+
+	logger.Debug("Proposer address", "address", previousProposer.String())
+
+	// calculate and pay previous proposer reward
+	proposerValidator := k.stakingKeeper.ValidatorByConsAddr(ctx, previousProposer)
+	if proposerValidator == nil {
+		logger.Error("failed to find the validator for this block. fees allocated to community pool")
 		feePool.CommunityPool = feePool.CommunityPool.Add(feesCollected...)
 		k.SetFeePool(ctx, feePool)
 		return
 	}
 
-	// calculate fraction votes
-	previousFractionVotes := sdk.NewDec(sumPreviousPrecommitPower).Quo(sdk.NewDec(totalPreviousPower))
-
-	// calculate previous proposer reward
-	baseProposerReward := k.GetBaseProposerReward(ctx)
-	bonusProposerReward := k.GetBonusProposerReward(ctx)
-	proposerMultiplier := baseProposerReward.Add(bonusProposerReward.MulTruncate(previousFractionVotes))
-	proposerReward := feesCollected.MulDecTruncate(proposerMultiplier)
-
-	// pay previous proposer
-	remaining := feesCollected
-	proposerValidator := k.stakingKeeper.ValidatorByConsAddr(ctx, previousProposer)
-
-	if proposerValidator != nil {
-		ctx.EventManager().EmitEvent(
-			sdk.NewEvent(
-				types.EventTypeProposerReward,
-				sdk.NewAttribute(sdk.AttributeKeyAmount, proposerReward.String()),
-				sdk.NewAttribute(types.AttributeKeyValidator, proposerValidator.GetOperator().String()),
-			),
-		)
-
-		k.AllocateTokensToValidator(ctx, proposerValidator, proposerReward)
-		remaining = remaining.Sub(proposerReward)
-	} else {
-		// previous proposer can be unknown if say, the unbonding period is 1 block, so
-		// e.g. a validator undelegates at block X, it's removed entirely by
-		// block X+1's endblock, then X+2 we need to refer to the previous
-		// proposer for X+1, but we've forgotten about them.
-		logger.Error(fmt.Sprintf(
-			"WARNING: Attempt to allocate proposer rewards to unknown proposer %s. "+
-				"This should happen only if the proposer unbonded completely within a single block, "+
-				"which generally should not happen except in exceptional circumstances (or fuzz testing). "+
-				"We recommend you investigate immediately.",
-			previousProposer.String()))
-	}
-
-	// calculate fraction allocated to validators
-	communityTax := k.GetCommunityTax(ctx)
-	voteMultiplier := sdk.OneDec().Sub(proposerMultiplier).Sub(communityTax)
-
-	// allocate tokens proportionally to voting power
-	// TODO consider parallelizing later, ref https://github.com/cosmos/cosmos-sdk/pull/3099#discussion_r246276376
-	for _, vote := range bondedVotes {
-		validator := k.stakingKeeper.ValidatorByConsAddr(ctx, vote.Validator.Address)
-
-		// TODO consider microslashing for missing votes.
-		// ref https://github.com/cosmos/cosmos-sdk/issues/2525#issuecomment-430838701
-		powerFraction := sdk.NewDec(vote.Validator.Power).QuoTruncate(sdk.NewDec(totalPreviousPower))
-		reward := feesCollected.MulDecTruncate(voteMultiplier).MulDecTruncate(powerFraction)
-		k.AllocateTokensToValidator(ctx, validator, reward)
-		remaining = remaining.Sub(reward)
-	}
-
 	// allocate community funding
-	feePool.CommunityPool = feePool.CommunityPool.Add(remaining...)
+	feePool.CommunityPool = feePool.CommunityPool.Add(communityTax...)
 	k.SetFeePool(ctx, feePool)
+
+	//Until we'll have a different use case for the "remainer" of the fees, allocate them to the proposer as well
+	proposerReward = proposerReward.Add(remaining...)
+	k.AllocateTokensToValidator(ctx, proposerValidator, proposerReward)
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeProposerReward,
+			sdk.NewAttribute(sdk.AttributeKeyAmount, proposerReward.String()),
+			sdk.NewAttribute(types.AttributeKeyValidator, proposerValidator.GetOperator().String()),
+		),
+	)
+
+	/*
+		//allocate remaining tokens proportionally by applocative power distribution
+	*/
+
 }
 
 // AllocateTokensToValidator allocate tokens to a particular validator, splitting according to commission

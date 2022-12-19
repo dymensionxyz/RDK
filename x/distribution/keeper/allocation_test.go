@@ -84,10 +84,9 @@ func TestAllocateTokensToManyValidators(t *testing.T) {
 
 	// fund fee collector
 	require.NoError(t, simapp.FundModuleAccount(app.BankKeeper, ctx, feeCollector.GetName(), fees))
-
 	app.AccountKeeper.SetAccount(ctx, feeCollector)
 
-	votes := []abci.VoteInfo{
+	_ = []abci.VoteInfo{
 		{
 			Validator:       abciValA,
 			SignedLastBlock: true,
@@ -97,21 +96,32 @@ func TestAllocateTokensToManyValidators(t *testing.T) {
 			SignedLastBlock: true,
 		},
 	}
-	app.DistrKeeper.AllocateTokens(ctx, 200, 200, valConsAddr2, votes)
 
-	// 98 outstanding rewards (100 less 2 to community pool)
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(465, 1)}}, app.DistrKeeper.GetValidatorOutstandingRewards(ctx, valAddrs[0]).Rewards)
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(515, 1)}}, app.DistrKeeper.GetValidatorOutstandingRewards(ctx, valAddrs[1]).Rewards)
-	// 2 community pool coins
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(2)}}, app.DistrKeeper.GetFeePool(ctx).CommunityPool)
-	// 50% commission for first proposer, (0.5 * 93%) * 100 / 2 = 23.25
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(2325, 2)}}, app.DistrKeeper.GetValidatorAccumulatedCommission(ctx, valAddrs[0]).Commission)
-	// zero commission for second proposer
+	//First block created by val2
+	app.DistrKeeper.AllocateTokens(ctx, valConsAddr2)
+	//make sure val1 gets nothing (not participating in this block)
+	require.True(t, app.DistrKeeper.GetValidatorCurrentRewards(ctx, valAddrs[0]).Rewards.IsZero())
+	require.True(t, app.DistrKeeper.GetValidatorOutstandingRewards(ctx, valAddrs[0]).Rewards.IsZero())
+	require.True(t, app.DistrKeeper.GetValidatorAccumulatedCommission(ctx, valAddrs[0]).Commission.IsZero())
+
+	// 98 outstanding rewards (100 less 2 to community pool) - all should go to validator 2
+	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(980, 1)}}, app.DistrKeeper.GetValidatorOutstandingRewards(ctx, valAddrs[1]).Rewards)
 	require.True(t, app.DistrKeeper.GetValidatorAccumulatedCommission(ctx, valAddrs[1]).Commission.IsZero())
-	// just staking.proportional for first proposer less commission = (0.5 * 93%) * 100 / 2 = 23.25
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(2325, 2)}}, app.DistrKeeper.GetValidatorCurrentRewards(ctx, valAddrs[0]).Rewards)
-	// proposer reward + staking.proportional for second proposer = (5 % + 0.5 * (93%)) * 100 = 51.5
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(515, 1)}}, app.DistrKeeper.GetValidatorCurrentRewards(ctx, valAddrs[1]).Rewards)
+	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(980, 1)}}, app.DistrKeeper.GetValidatorCurrentRewards(ctx, valAddrs[1]).Rewards)
+
+	//2nd block by val1
+	require.NoError(t, simapp.FundModuleAccount(app.BankKeeper, ctx, feeCollector.GetName(), fees))
+	app.AccountKeeper.SetAccount(ctx, feeCollector)
+	app.DistrKeeper.AllocateTokens(ctx, valConsAddr1)
+
+	// 50% commission for first proposer, (0.5 * 98%) * 100 = 49
+	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(980, 1)}}, app.DistrKeeper.GetValidatorOutstandingRewards(ctx, valAddrs[0]).Rewards)
+	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(490, 1)}}, app.DistrKeeper.GetValidatorAccumulatedCommission(ctx, valAddrs[0]).Commission)
+	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(490, 1)}}, app.DistrKeeper.GetValidatorCurrentRewards(ctx, valAddrs[0]).Rewards)
+
+	// 4 community pool coins
+	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(4)}}, app.DistrKeeper.GetFeePool(ctx).CommunityPool)
+
 }
 
 func TestAllocateTokensTruncation(t *testing.T) {
@@ -167,7 +177,7 @@ func TestAllocateTokensTruncation(t *testing.T) {
 
 	app.AccountKeeper.SetAccount(ctx, feeCollector)
 
-	votes := []abci.VoteInfo{
+	_ = []abci.VoteInfo{
 		{
 			Validator:       abciValA,
 			SignedLastBlock: true,
@@ -181,7 +191,7 @@ func TestAllocateTokensTruncation(t *testing.T) {
 			SignedLastBlock: true,
 		},
 	}
-	app.DistrKeeper.AllocateTokens(ctx, 31, 31, sdk.ConsAddress(valConsPk2.Address()), votes)
+	app.DistrKeeper.AllocateTokens(ctx, sdk.ConsAddress(valConsPk2.Address()))
 
 	require.True(t, app.DistrKeeper.GetValidatorOutstandingRewards(ctx, valAddrs[0]).Rewards.IsValid())
 	require.True(t, app.DistrKeeper.GetValidatorOutstandingRewards(ctx, valAddrs[1]).Rewards.IsValid())

@@ -10,6 +10,7 @@ import (
 )
 
 // Parameter keys
+//TODO: remove the bonus proposer reward. unused in a rollapp
 var (
 	ParamStoreKeyCommunityTax        = []byte("communitytax")
 	ParamStoreKeyBaseProposerReward  = []byte("baseproposerreward")
@@ -25,9 +26,9 @@ func ParamKeyTable() paramtypes.KeyTable {
 // DefaultParams returns default distribution parameters
 func DefaultParams() Params {
 	return Params{
-		CommunityTax:        sdk.NewDecWithPrec(2, 2), // 2%
-		BaseProposerReward:  sdk.NewDecWithPrec(1, 2), // 1%
-		BonusProposerReward: sdk.NewDecWithPrec(4, 2), // 4%
+		CommunityTax:        sdk.NewDecWithPrec(2, 2),  // 2%
+		BaseProposerReward:  sdk.NewDecWithPrec(80, 2), // 80%
+		BonusProposerReward: sdk.NewDecWithPrec(0, 2),  // 0%
 		WithdrawAddrEnabled: true,
 	}
 }
