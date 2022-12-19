@@ -49,4 +49,5 @@ var (
 	ErrInvalidHistoricalInfo           = sdkerrors.Register(ModuleName, 37, "invalid historical info")
 	ErrNoHistoricalInfo                = sdkerrors.Register(ModuleName, 38, "no historical info found")
 	ErrEmptyValidatorPubKey            = sdkerrors.Register(ModuleName, 39, "empty validator public key")
+	ErrSingleSequencerSupported        = sdkerrors.Register(ModuleName, 100, "single sequencer supported")
 )
