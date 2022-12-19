@@ -35,6 +35,15 @@ func (k msgServer) CreateValidator(goCtx context.Context, msg *types.MsgCreateVa
 		return nil, err
 	}
 
+	/*
+		As long as decentralized sequencer isn't supported,
+		don't allow to create more than single validator
+	*/
+	validators := k.GetValidators(ctx, 1)
+	if len(validators) > 0 {
+		return nil, types.ErrSingleSequencerSupported
+	}
+
 	// check to see if the pubkey or sender has been registered before
 	if _, found := k.GetValidator(ctx, valAddr); found {
 		return nil, types.ErrValidatorOwnerExists
