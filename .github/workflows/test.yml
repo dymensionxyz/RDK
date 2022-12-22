@@ -37,7 +37,7 @@ jobs:
         with:
           go-version: 1.18
       - run: git config --global url.https://$GH_ACCESS_TOKEN@github.com/.insteadOf https://github.com/
-      - uses: technote-space/get-diff-action@v4
+      - uses: technote-space/get-diff-action@v6
         id: git_diff
         with:
           PATTERNS: |
@@ -60,7 +60,7 @@ jobs:
       - run: git config --global url.https://$GH_ACCESS_TOKEN@github.com/.insteadOf https://github.com/
       - name: Display go version
         run: go version
-      - uses: technote-space/get-diff-action@v4
+      - uses: technote-space/get-diff-action@v6
         id: git_diff
         with:
           PREFIX_FILTER: |
@@ -115,7 +115,7 @@ jobs:
         with:
           go-version: 1.18
       - run: git config --global url.https://$GH_ACCESS_TOKEN@github.com/.insteadOf https://github.com/
-      - uses: technote-space/get-diff-action@v4
+      - uses: technote-space/get-diff-action@v6
         with:
           PATTERNS: |
             **/**.go
@@ -139,7 +139,7 @@ jobs:
     needs: tests
     steps:
       - uses: actions/checkout@v2
-      - uses: technote-space/get-diff-action@v4
+      - uses: technote-space/get-diff-action@v6
         with:
           PATTERNS: |
             **/**.go
@@ -197,7 +197,7 @@ jobs:
         with:
           go-version: 1.18
       - run: git config --global url.https://$GH_ACCESS_TOKEN@github.com/.insteadOf https://github.com/
-      - uses: technote-space/get-diff-action@v4
+      - uses: technote-space/get-diff-action@v6
         with:
           PATTERNS: |
             **/**.go
@@ -221,7 +221,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
-      - uses: technote-space/get-diff-action@v4
+      - uses: technote-space/get-diff-action@v6
         id: git_diff
         with:
           PATTERNS: |
@@ -245,7 +245,7 @@ jobs:
         with:
           go-version: 1.18
       - run: git config --global url.https://$GH_ACCESS_TOKEN@github.com/.insteadOf https://github.com/
-      - uses: technote-space/get-diff-action@v4
+      - uses: technote-space/get-diff-action@v6
         id: git_diff
         with:
           PATTERNS: |
